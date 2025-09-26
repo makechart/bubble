@@ -1,0 +1,68 @@
+div
+  div(plug="layout")
+    .pdl-layout
+      div(data-type="layout")
+        .pdl-cell(data-name="view")
+        .pdl-cell(data-name="unit")
+        .pdl-cell(data-name="legend")
+        .pdl-cell(data-name="pie-legend")
+      div(data-type="render")
+  style(type="text/css"): :stylus
+    .pdl-layout > div[data-type=layout]
+      display: grid
+      grid-template: 1fr fit-content(1em) / 1fr
+      .pdl-cell[data-name=view] { grid-area: 1 / 1 }
+      .pdl-cell[data-name=unit]
+        grid-area: 2 / 1
+        line-height: 1em
+        text-align: right
+        padding: .25em 0
+        white-space: nowrap
+
+    .pdl-layout.lg-rt > div[data-type=layout]
+      grid-template: 1fr fit-content(1em) / 1fr fit-content(10em)
+      .pdl-cell[data-name=unit] { grid-area: 2 / 2 }
+      .pdl-cell[data-name=legend] { grid-area: 1 / 2; padding: 0 .5em 0 .5em }
+    .pdl-layout.lgp-rt > div[data-type=layout]
+      grid-template: 1fr fit-content(1em) / 1fr fit-content(10em)
+      .pdl-cell[data-name=unit] { grid-area: 2 / 2 }
+      .pdl-cell[data-name=pie-legend] { grid-area: 1 / 2; padding: 0 .5em 0 .5em }
+
+    .pdl-layout.lg-bt > div[data-type=layout]
+      grid-template: 1fr fit-content(3em) / 1fr fit-content(1em)
+      .pdl-cell[data-name=unit] { grid-area: 2 / 2; padding: 1em 0 0 }
+      .pdl-cell[data-name=legend] { grid-area: 2 / 1; padding: 1em 0 0 }
+    .pdl-layout.lgp-bt > div[data-type=layout]
+      grid-template: 1fr fit-content(3em) / 1fr fit-content(1em)
+      .pdl-cell[data-name=unit] { grid-area: 2 / 2; padding: 1em 0 0 }
+      .pdl-cell[data-name=pie-legend] { grid-area: 2 / 1; padding: 1em 0 0 }
+
+    .pdl-layout.lgp-rt.lg-rt > div[data-type=layout]
+      grid-template: 1fr 1fr fit-content(1em) / 1fr fit-content(10em)
+      .pdl-cell[data-name=view] { grid-area: 1 / 1 / span 2 }
+      .pdl-cell[data-name=unit] { grid-area: 3 / 2 }
+      .pdl-cell[data-name=legend] { grid-area: 1 / 2; padding: 0 .5em 0 .5em }
+      .pdl-cell[data-name=pie-legend] { grid-area: 2 / 2; padding: 0 .5em 0 .5em }
+
+    .pdl-layout.lgp-bt.lg-bt > div[data-type=layout]
+      grid-template: 1fr fit-content(3em) / 1fr 1fr fit-content(1em)
+      .pdl-cell[data-name=view] { grid-area: 1 / 1 / auto / span 2 }
+      .pdl-cell[data-name=unit] { grid-area: 2 / 3; padding: 1em 0 0 }
+      .pdl-cell[data-name=legend] { grid-area: 2 / 1; padding: 1em 0 0 }
+      .pdl-cell[data-name=pie-legend] { grid-area: 2 / 2; padding: 1em 0 0}
+
+    .pdl-layout.lgp-bt.lg-rt > div[data-type=layout]
+      grid-template: 1fr fit-content(3em) / 1fr fit-content(10em)
+      .pdl-cell[data-name=view] { grid-area: 1 / 1 }
+      .pdl-cell[data-name=unit] { grid-area: 2 / 2; padding: 1em 0 0 }
+      .pdl-cell[data-name=legend] { grid-area: 1 / 2; padding: 0 .5em 0 .5em }
+      .pdl-cell[data-name=pie-legend] { grid-area: 2 / 1; padding: 1em 0 0}
+
+    .pdl-layout.lgp-rt.lg-bt > div[data-type=layout]
+      grid-template: 1fr fit-content(3em) / 1fr fit-content(10em)
+      .pdl-cell[data-name=view] { grid-area: 1 / 1 }
+      .pdl-cell[data-name=unit] { grid-area: 2 / 2; padding: 1em 0 0 }
+      .pdl-cell[data-name=egend] { grid-area: 2 / 1; padding: 1em 0 0}
+      .pdl-cell[data-name=pie-legend] { grid-area: 1 / 2; padding: 0 .5em 0 .5em }
+
+  script(type="@plotdb/block"): include:lsc index.ls
