@@ -41,7 +41,7 @@ mod = ({ctx, t}) ->
         default: 0.5, min: 0.1, max: 0.9, step: 0.01
       legend: chart.utils.config.from({preset: \legend})
     label:
-      enabled: type: \choice, default: \both, values: <[both name value]>
+      enabled: type: \choice, default: \both, values: <[both name value none]>
       format: type: \format, default: \.3s
       overflow: type: \number, default: 0, min: 0, max: 1, step: 0.01
       font: chart.utils.config.from({preset: \font})
@@ -244,7 +244,7 @@ mod = ({ctx, t}) ->
           if p => p else d
         else d
         {x,y} = d
-        d <<< {radius: ddata.area ** 0.5, x, y}
+        d <<< {x, y}
         d <<< ddata{_idx, _id, name, color, group, area}
         if od._x => d._x = od._x else if !d._x => d._x = d.x
         if od._y => d._y = od._y else if !d._y => d._y = d.y
@@ -416,7 +416,8 @@ mod = ({ctx, t}) ->
                 lineHeight: fs(d, i, 1.2)
               }
             }
-            ret.style.transform = "translate(0,#{i * (0.3 + 1.1 / fs(d,i,1))}em)"
+            ret.style.transform = if cfg.label.enabled != \both => "translate(0,0)"
+            else "translate(0,#{i * (0.3 + 1.1 / fs(d,i,1))}em)"
             Array.from(ret.querySelectorAll("text")).map ->
               it.setAttribute \text-anchor, \middle
             @appendChild ret
@@ -436,6 +437,7 @@ mod = ({ctx, t}) ->
             if c == \both => return 1
             if c == \name => return (if i == 0 => 0 else 1)
             if c == \value => return (if i == 1 => 0 else 1)
+            if c == \none => return 0
             return 1
           .attr \fill, ->
             hcl = ldcolor.hcl(_color d, 0)
