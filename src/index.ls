@@ -30,6 +30,17 @@ mod = ({ctx, t}) ->
     legend: \legend
     tip: \tip
   }) <<<
+    bubble:
+      max-radius: name: "max radius", type: \number, default: 100, min: 0.1, max: 100, step: 0.1
+    dynamics:
+      anchor:
+        name: "Anchor Layout", type: \choice, default: \none
+        values: [
+        * name: "Default", value: \default
+        * name: "Circular", value: \circular
+        * name: "Array", value: \array
+        * name: "none", value: \none
+        ]
     pie:
       order: type: \choice, values: <[group ratio]>, default: \ratio
       color:
@@ -288,7 +299,32 @@ mod = ({ctx, t}) ->
         d <<< x: dr * (e.x2 - e.x1) * 0.5 + (e.x2 + e.x1) / 2
       else
         d <<< x: dr * box.width * 0.4 + box.width * 0.5
-
+    gn = @cfg.dynamics.anchor
+    exthash = Object.fromEntries @groups.map (d,i) -> [d,i]
+    for k, v of exts =>
+      @{}gcenter[k] = if gn == \circular =>
+        [i,r] = [exthash[k], Math.min(@vbox.width, @vbox.height)]
+        x: @vbox.width * 0.5 + r * Math.cos(i * Math.PI * 2 / (@groups.length or 1)) * 0.3
+        y: @vbox.height * 0.5 + r * Math.sin(i * Math.PI * 2 / (@groups.length or 1)) * 0.3
+      else if gn == \array =>
+        i = exthash[k]
+        side = Math.sqrt((@vbox.width * @vbox.height) / (@groups.length or 1))
+        cx = Math.floor(@vbox.width / side)
+        cy = Math.floor(@vbox.height / side)
+        list = [
+          [cx, cy, cx * cy]
+          [cx + 1, cy, (cx + 1) * cy]
+          [cx, cy + 1, cx * (cy + 1)]
+          [cx + 1, cy + 1, (cx + 1) * (cy + 1)]
+        ]
+        list.sort (a,b) -> if a.2 < b.2 => -1 else if a.2 > b.2 => 1 else 0
+        _list = list.filter ~> it.2 >= @groups.length
+        [cx, cy] =  if !_list.length => list[* - 1] else _list.0
+        side = Math.min(@vbox.width / cx, @vbox.height / cy)
+        dx = (@vbox.width - side * cx) / 2
+        dy = (@vbox.height - side * cy) / 2
+        x: side * ((i % (cx or 1)) + 0.5) + dx, y: side * (Math.floor(i / (cx or 1)) + 0.5) + dy
+      else x: (v.x1 + v.x2) * 0.5, y: (v.y1 + v.y2) * 0.5
     @sim = null
     @start!
 
@@ -306,7 +342,11 @@ mod = ({ctx, t}) ->
     @rate = rate = 0.85 * # make it slightly smaller. adjust as your wish
       Math.PI / (2 * Math.sqrt(3)) * # wasted space from exterior hexagon to circle
       Math.sqrt(box.width * box.height / @parsed.map(-> Math.PI * (it.r ** 2)).reduce(((a,b) -> a + b),0))
-    @parsed.map (d,i) ~> d.rr = (d.r * @rate) >? 2
+    rext = d3.extent @parsed.map (d,i) ~> d.rr = (d.r * @rate)
+    maxr = Math.min((@cfg.bubble.max-radius or 0) * box.width * 0.25 / 100, rext.1)
+    radius-scale = d3.scaleLinear!domain(rext).range [1, maxr]
+    @parsed.map (d,i) ~> d.rr = radius-scale d.rr
+
     @parsed.map (d,i) ->
       d.paths.map (p,j) ->
         s = p.s * 2 * Math.PI / d.total
@@ -475,7 +515,14 @@ mod = ({ctx, t}) ->
     box = @vbox
     if !@sim =>
       kickoff = true
-      @fc = fc = d3.forceCollide!strength 0.5 .iterations 20 .radius ~> @rate * it.r
+      @fc = fc = d3.forceCollide!strength 0.5 .iterations 20 .radius ~> it.rr #@rate * (it.r)
+      # in fx, fy, we can tweak d.group to group with different dimensions
+      @fx = d3.forceX(
+        (d) ~> (@gcenter[d.group] or {}).x or @vbox.width / 2
+      ).strength(0.3)
+      @fy = d3.forceY(
+        (d) ~> (@gcenter[d.group] or {}).y or @vbox.height / 2
+      ).strength(0.3)
       @fg = d3.forceCenter!strength 0.5
       @fb = forceBoundary(
         (~> it.rr + pad), (~> it.rr + pad),
@@ -488,8 +535,12 @@ mod = ({ctx, t}) ->
         .force \collide, @fc
       @sim.stop!
       @sim.alpha 0.9
-    @fg.x(box.width / 2)
-    @fg.y(box.height / 2)
+    #@fg.x(box.width / 2)
+    #@fg.y(box.height / 2)
+    if (@cfg.dynamics or {}).anchor == \none or !(@cfg.dynamics or {}).anchor =>
+      @sim.force(\x, null).force(\y, null)
+    else @sim.force(\x, @fx).force(\y,@fy)
+
     @sim.nodes(@parsed)
     @sim.tick if kickoff => 10 else 1
     @parsed.map ->
