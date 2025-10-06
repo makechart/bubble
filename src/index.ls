@@ -421,7 +421,7 @@ mod = ({ctx, t}) ->
           */
     @g.view.selectAll \g.label
       .attr \transform, (d,i) -> "translate(#{d._x},#{d._y})"
-      .attr \class, "label #{if cfg.label.font.family => that.className else ''}"
+      .attr \class, "label #{if cfg.label.font.family => (that.className or '') else ''}"
       .each (d,i) ->
         t = (e,i) ->
           if i != 0 => return d.name or ''
