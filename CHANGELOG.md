@@ -6,6 +6,7 @@
  - tweak force dynamics
  - support `trim` config with amount of entries to keep in label config
  - fix bug: label should apply `label.font.size` instead of `font.size`
+ - fix bug: tweak pad config which shouldn't exist
 
 
 ## v0.0.3
