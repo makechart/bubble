@@ -31,6 +31,7 @@ mod = ({ctx, t}) ->
     tip: \tip
   }) <<<
     bubble:
+      min-radius: name: "min radius", type: \number, default: 1, min: 0, max: 10, step: 1
       max-radius: name: "max radius", type: \number, default: 100, min: 0.1, max: 100, step: 0.1
     dynamics:
       anchor:
@@ -343,9 +344,12 @@ mod = ({ctx, t}) ->
       Math.PI / (2 * Math.sqrt(3)) * # wasted space from exterior hexagon to circle
       Math.sqrt(box.width * box.height / @parsed.map(-> Math.PI * (it.r ** 2)).reduce(((a,b) -> a + b),0))
     rext = d3.extent @parsed.map (d,i) ~> d.rr = (d.r * @rate)
-    maxr = Math.min((@cfg.bubble.max-radius or 0) * box.width * 0.25 / 100, rext.1)
-    radius-scale = d3.scaleLinear!domain(rext).range [1, maxr]
-    @parsed.map (d,i) ~> d.rr = radius-scale d.rr
+    minr = @cfg.bubble.min-radius or 0
+    maxr = Math.min((@cfg.bubble.max-radius or 0) * box.width * 0.25 / 100, rext.1) >? minr
+    radius-scale = d3.scaleLinear!domain([0,rext.1]).range [0, maxr]
+    @parsed.map (d,i) ~>
+      d.rr = radius-scale d.rr
+      if d.rr => d.rr >?= minr
 
     @parsed.map (d,i) ->
       d.paths.map (p,j) ->
