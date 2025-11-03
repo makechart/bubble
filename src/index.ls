@@ -539,7 +539,7 @@ mod = ({ctx, t}) ->
 
   tick: ->
     # TODO actually we don't have pad config. remove it?
-    pad = @cfg.pad or 0
+    pad = @cfg.pad or 5
     box = @vbox
     if !@sim =>
       kickoff = true
