@@ -390,7 +390,7 @@ mod = ({ctx, t}) ->
           .attrTween \d, (d,i) -> interpolate-arc d.old, d.cur, i
           .attr \fill, (d,i) ~> _color _d, i
           .attr \opacity, 1
-    @g.view.selectAll \g.label .data @parsed, (->it._id)
+    @g.view.selectAll \g.label .data @parsed, (._id)
       ..exit!remove!
       ..enter!append \g
         .attr \class, 'label data'
@@ -467,18 +467,19 @@ mod = ({ctx, t}) ->
             # e._show = b.height <= s
             # if !e._show => d3.select(@).attr \opacity, 0
             ## the `e._show` in `\opacity` below should also be enabled if we want to enable this.
-
+        get-opacity = (e, i) ->
+          #if !e._show => return 0
+          c = cfg.label.enabled
+          if c == \both => return 1
+          if c == \name => return (if i == 0 => 0 else 1)
+          if c == \value => return (if i == 1 => 0 else 1)
+          if c == \none => return 0
+          return 1
         d3.select(@).selectAll \.inner
           .attr \font-size, (e,i) -> "#{fs(e,i,1)}em"
           .transition!duration 350
-          .attr \opacity, (e,i) ->
-            #if !e._show => return 0
-            c = cfg.label.enabled
-            if c == \both => return 1
-            if c == \name => return (if i == 0 => 0 else 1)
-            if c == \value => return (if i == 1 => 0 else 1)
-            if c == \none => return 0
-            return 1
+          .style \visibility, (e,i) -> if get-opacity(e,i) => \visible else \hidden
+          .attr \opacity, get-opacity
           .attr \fill, ->
             hcl = ldcolor.hcl(_color d, 0)
             if hcl.l < 70 => \#fff else \#000
@@ -492,6 +493,12 @@ mod = ({ctx, t}) ->
     if @h => clearTimeout @h
     @h = setTimeout (~>
       @h = null
+      get-opacity = (d,i) ->
+        box = d._box # @getBoundingClientRect!
+        [w,h] = [box.width, box.height]
+        # tolerance for label overflowing out of circle
+        s = 2 * d.rr * ((cfg.label.overflow or 0) + 1)
+        if s < w or 2 * d.rr < h => 0 else 1
       @g.view.selectAll \g.label
         .each (d,i) ->
           d._box = box = @getBoundingClientRect!
@@ -499,12 +506,8 @@ mod = ({ctx, t}) ->
           d3.select(@).selectAll \.inner
             .attr \transform -> "translate(0,#{-h/2})"
         .transition!duration 150
-        .attr \opacity, (d,i) ->
-          box = d._box # @getBoundingClientRect!
-          [w,h] = [box.width, box.height]
-          # tolerance for label overflowing out of circle
-          s = 2 * d.rr * ((cfg.label.overflow or 0) + 1)
-          if s < w or 2 * d.rr < h => 0 else 1
+        .attr \opacity, get-opacity
+        .style \visibility, (d,i) -> if get-opacity(d,i) => \visible else \hidden
     ), 150
     @legend.render!
 
