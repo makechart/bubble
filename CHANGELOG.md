@@ -1,6 +1,6 @@
 # Change Logs
 
-## v0.0.4 (upcoming)
+## v0.0.4
 
  - enforce maximal radius based on canvas size to prevent overflow
  - tweak force dynamics
