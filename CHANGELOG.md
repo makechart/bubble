@@ -5,6 +5,7 @@
  - enforce maximal radius based on canvas size to prevent overflow
  - tweak force dynamics
  - support `trim` config with amount of entries to keep in label config
+ - fix bug: label should apply `label.font.size` instead of `font.size`
 
 
 ## v0.0.3

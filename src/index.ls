@@ -353,9 +353,6 @@ mod = ({ctx, t}) ->
     @parsed.map (d,i) ~>
       d.rr = radius-scale d.rr
       if d.rr => d.rr >?= minr
-    if @cfg?lable?trim?enabled =>
-      @parsed.sort (a,b) -> if a.rr < b.rr => 1 else if a.rr > b.rr => -1 else 0
-
 
   render: ->
     {fmt, _color, cfg, binding, tint, layout, unit} = @
@@ -411,14 +408,17 @@ mod = ({ctx, t}) ->
           .attr \fill, (d,i) ~> _color _d, i
           .attr \opacity, 1
     trimmed-parsed = if !@cfg?label?trim?enabled => @parsed
-    else @parsed.slice(0, (@cfg?label?trim?keep or 0))
+    else
+      @parsed
+        .sort (a,b) -> if +a.total < +b.total => 1 else if +a.total > +b.total => -1 else 0
+        .slice 0, (@cfg?label?trim?keep or 0)
     @g.view.selectAll \g.label .data trimmed-parsed, (._id)
       ..exit!remove!
       ..enter!append \g
         .attr \class, 'label data'
         .attr \transform, (d,i) -> "translate(#{d.x},#{d.y})"
         .attr \opacity, 0
-        .attr \font-size, -> cfg.font.size
+        .attr \font-size, (cfg.label.font.size or '1em')
         .style \pointer-events, \none
         .style \cursor, \pointer
         .each (d,i) ->
@@ -442,6 +442,7 @@ mod = ({ctx, t}) ->
                 .style \pointer-event, \none
           */
     @g.view.selectAll \g.label
+      .attr \font-size, (cfg.label.font.size or '1em')
       .attr \transform, (d,i) -> "translate(#{d._x},#{d._y})"
       .attr \class, "label #{if cfg.label.font.family => (that.className or '') else ''}"
       .each (d,i) ->
@@ -476,6 +477,7 @@ mod = ({ctx, t}) ->
               style: {
                 width: "#{if cfg.label.wrap => d.rr * 2 else box.width}px"
                 lineHeight: fs(d, i, 1.2)
+                fontSize: cfg.label.font.size or ''
               }
             }
             ret.style.transform = if cfg.label.enabled != \both => "translate(0,0)"
