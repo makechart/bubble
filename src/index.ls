@@ -538,7 +538,8 @@ mod = ({ctx, t}) ->
     @pie-legend.render!
 
   tick: ->
-    pad = @cfg.pad or 5
+    # TODO actually we don't have pad config. remove it?
+    pad = @cfg.pad or 0
     box = @vbox
     if !@sim =>
       kickoff = true
