@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.0.3
+
+ - add minimal radius (in pixel)
+
+
 ## v0.0.2
 
  - remove unused `radius` since it's not correct anyway
