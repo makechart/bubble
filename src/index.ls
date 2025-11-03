@@ -55,9 +55,20 @@ mod = ({ctx, t}) ->
     label:
       enabled: type: \choice, default: \both, values: <[both name value none]>
       format: type: \format, default: \.3s
-      overflow: type: \number, default: 0, min: 0, max: 1, step: 0.01
+      overflow:
+        type: \number
+        desc: "percentage of tolerance when label overflow"
+        default: 0, min: 0, max: 1, step: 0.01
       font: chart.utils.config.from({preset: \font})
       wrap: type: \boolean, default: true
+      trim:
+        enabled:
+          type: \boolean, default: false
+          desc: "limit maximal amount of labels to show"
+        keep:
+          type: \number
+          desc: "amount of labels to keep when trim"
+          default: 100, min: 0, max: 100, step: 1
     unit: position: type: \choice, values: <[inner outside none]>
   dimension:
     group: {type: \C, name: "group", priority: 2}
@@ -329,16 +340,6 @@ mod = ({ctx, t}) ->
     @sim = null
     @start!
 
-  render: ->
-    {fmt, _color, cfg, binding, tint, layout, unit} = @
-    box = @vbox
-
-    @g.unit.call ~>
-      node = layout.get-node \unit
-      ret = wrap-svg-text {node, useRange: true}
-      @g.unit.node!textContent = ''
-      @g.unit.node!appendChild ret
-
     # automatically adjust circle size based on canvas size.
     @rate = rate = 0.85 * # make it slightly smaller. adjust as your wish
       Math.PI / (2 * Math.sqrt(3)) * # wasted space from exterior hexagon to circle
@@ -352,6 +353,19 @@ mod = ({ctx, t}) ->
     @parsed.map (d,i) ~>
       d.rr = radius-scale d.rr
       if d.rr => d.rr >?= minr
+    if @cfg?lable?trim?enabled =>
+      @parsed.sort (a,b) -> if a.rr < b.rr => 1 else if a.rr > b.rr => -1 else 0
+
+
+  render: ->
+    {fmt, _color, cfg, binding, tint, layout, unit} = @
+    box = @vbox
+
+    @g.unit.call ~>
+      node = layout.get-node \unit
+      ret = wrap-svg-text {node, useRange: true}
+      @g.unit.node!textContent = ''
+      @g.unit.node!appendChild ret
 
     @parsed.map (d,i) ->
       d.paths.map (p,j) ->
@@ -396,7 +410,9 @@ mod = ({ctx, t}) ->
           .attrTween \d, (d,i) -> interpolate-arc d.old, d.cur, i
           .attr \fill, (d,i) ~> _color _d, i
           .attr \opacity, 1
-    @g.view.selectAll \g.label .data @parsed, (._id)
+    trimmed-parsed = if !@cfg?label?trim?enabled => @parsed
+    else @parsed.slice(0, (@cfg?label?trim?keep or 0))
+    @g.view.selectAll \g.label .data trimmed-parsed, (._id)
       ..exit!remove!
       ..enter!append \g
         .attr \class, 'label data'

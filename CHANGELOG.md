@@ -4,6 +4,7 @@
 
  - enforce maximal radius based on canvas size to prevent overflow
  - tweak force dynamics
+ - support `trim` config with amount of entries to keep in label config
 
 
 ## v0.0.3
