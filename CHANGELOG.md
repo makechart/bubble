@@ -1,5 +1,11 @@
 # Change Logs
 
+## v0.0.4 (upcoming)
+
+ - enforce maximal radius based on canvas size to prevent overflow
+ - tweak force dynamics
+
+
 ## v0.0.3
 
  - add minimal radius (in pixel)

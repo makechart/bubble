@@ -345,7 +345,9 @@ mod = ({ctx, t}) ->
       Math.sqrt(box.width * box.height / @parsed.map(-> Math.PI * (it.r ** 2)).reduce(((a,b) -> a + b),0))
     rext = d3.extent @parsed.map (d,i) ~> d.rr = (d.r * @rate)
     minr = @cfg.bubble.min-radius or 0
+    minr <?= Math.min(box.width, box.height) / 2
     maxr = Math.min((@cfg.bubble.max-radius or 0) * box.width * 0.25 / 100, rext.1) >? minr
+    maxr <?= Math.min(box.width, box.height) / 2
     radius-scale = d3.scaleLinear!domain([0,rext.1]).range [0, maxr]
     @parsed.map (d,i) ~>
       d.rr = radius-scale d.rr
@@ -522,7 +524,7 @@ mod = ({ctx, t}) ->
     box = @vbox
     if !@sim =>
       kickoff = true
-      @fc = fc = d3.forceCollide!strength 0.5 .iterations 20 .radius ~> it.rr #@rate * (it.r)
+      @fc = fc = d3.forceCollide!strength 0.5 .iterations 10 .radius ~> it.rr
       # in fx, fy, we can tweak d.group to group with different dimensions
       @fx = d3.forceX(
         (d) ~> (@gcenter[d.group] or {}).x or @vbox.width / 2
@@ -541,7 +543,7 @@ mod = ({ctx, t}) ->
         .force \b, @fb
         .force \collide, @fc
       @sim.stop!
-      @sim.alpha 0.9
+      @sim.alpha 1
     #@fg.x(box.width / 2)
     #@fg.y(box.height / 2)
     if (@cfg.dynamics or {}).anchor == \none or !(@cfg.dynamics or {}).anchor =>
