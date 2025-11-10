@@ -1,5 +1,11 @@
 # Change Logs
 
+## v0.0.5
+
+ - add d3-force-boundary dependency
+ - ensure accessing unit with an existed object
+
+
 ## v0.0.4
 
  - enforce maximal radius based on canvas size to prevent overflow

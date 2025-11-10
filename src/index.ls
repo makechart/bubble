@@ -2,7 +2,9 @@ module.exports =
   pkg:
     name: 'bubble', version: '0.0.1'
     extend: {name: "@makechart/base"}
-    dependencies: []
+    dependencies: [
+    * name: \d3-force-boundary, path: "dist/d3-force-boundary.min.js"
+    ]
     i18n:
       "zh-TW":
         "K": \千
@@ -210,7 +212,7 @@ mod = ({ctx, t}) ->
     @root.querySelector('.pdl-layout').classList.toggle \lgp-bt, (plg-on and plg-bt)
     @root.querySelector('.pdl-layout').classList.toggle \lgp-rt, (plg-on and !plg-bt)
 
-    @unit.text = (@binding.area.0 or {}).unit or ''
+    @unit.text = (@binding.area?0 or {})?unit or ''
     @unit <<<
       inner: if @cfg.{}unit.position == \inner => @unit.text else ''
       outer: (
