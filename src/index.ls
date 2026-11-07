@@ -1,8 +1,15 @@
 module.exports =
   pkg:
     name: 'bubble', version: '0.0.1'
-    extend: {name: "@makechart/base"}
+    # lite: 不帶 d3 的 base. 補間改用 chart.anim, 可以逐格錄影 ( 見 @plotdb/chart utils/anim )
+    extend: {name: "@makechart/base", path: "lite/index.html"}
+    # 版面用 d3-hierarchy ( pack ) 與 d3-force ( 依相依順序載入, 不需要 d3 core ) 加 d3-force-boundary
     dependencies: [
+    * name: \d3-hierarchy, version: "3.1.2", path: "dist/d3-hierarchy.min.js", async: false
+    * name: \d3-dispatch, version: "3.0.1", path: "dist/d3-dispatch.min.js", async: false
+    * name: \d3-quadtree, version: "3.0.1", path: "dist/d3-quadtree.min.js", async: false
+    * name: \d3-timer, version: "3.0.1", path: "dist/d3-timer.min.js", async: false
+    * name: \d3-force, version: "3.0.0", path: "dist/d3-force.min.js", async: false
     * name: \d3-force-boundary, path: "dist/d3-force-boundary.min.js"
     ]
     i18n:
@@ -14,6 +21,14 @@ module.exports =
 
 mod = ({ctx, t}) ->
   {d3,forceBoundary,ldcolor,chart,wrap-svg-text} = ctx
+  {scale: Scale, shape, anim: {join}} = chart.utils
+  svgns = "http://www.w3.org/2000/svg"
+  kids = (p, sel) -> Array.from(p.querySelectorAll ":scope > #sel")
+  # 同 d3.extent: 略過 null / NaN
+  extent = (list) ->
+    vs = list.filter -> it? and +it >= +it
+    if vs.length => [vs.reduce(((a,b) -> if b < a => b else a)), vs.reduce(((a,b) -> if b > a => b else a))]
+    else [undefined, undefined]
   sample: ->
     raw: [0 to 100].map (val) ~>
       name: "N-#val-" + Math.random!toString(16).substring(Math.ceil(Math.random! * 10))
@@ -82,13 +97,13 @@ mod = ({ctx, t}) ->
     @tint = tint = new chart.utils.tint!
     @unit = {}
     @parsed = @parsed or []
-    @g = Object.fromEntries <[view unit legend]>.map ~> [it, d3.select(@layout.get-group it)]
+    @g = Object.fromEntries <[view unit legend]>.map ~> [it, @layout.get-group it]
     node = @root.querySelector '[ld=tip]'
     @tip = new chart.utils.tip {
       root: @root
       accessor: ({evt}) ~>
-        if !(evt.target and d = d3.select(evt.target).datum!) => return null
-        fmt = if @cfg.tip.format => d3.format(@cfg.tip.format) else @fmt
+        if !(evt.target and d = evt.target.__data__) => return null
+        fmt = if @cfg.tip.format => chart.utils.format.d3(@cfg.tip.format) else @fmt
         value = if !(ret = fmt d.area) => '' else "#ret#{@unit.text}"
         if @binding.area and @binding.area.length > 1 =>
           b = @binding.area[d.idx] or {}
@@ -101,7 +116,7 @@ mod = ({ctx, t}) ->
       layout: @layout
       name: \legend
       root: @root
-      shape: (d) -> d3.select(@).attr \fill, tint.get d.key
+      shape: (d) -> @setAttribute \fill, tint.get d.key
       direction: if @cfg.{}legend.position == \bottom => \horizontal else \vertical
       cfg: selectable: true
     @legend.on \select, ~> @bind!; @resize!; @render!
@@ -116,16 +131,16 @@ mod = ({ctx, t}) ->
         if base.binding.group =>
           contrast = base.cfg.pie.contrast * 2
           l = 100 * (idx * contrast + (0.5 - contrast / 2)) >? 10 <? 90
-          d3.select(@).attr \fill, ldcolor.web({h: 0, c: 0, l: l})
+          @setAttribute \fill, ldcolor.web({h: 0, c: 0, l: l})
         else
           i = if /\/(\d+)/.exec(d.key) => +that.1 else 0
           c = tint.get((obj.binding.area[i] or {}).key or i)
-          d3.select(@).attr \fill, c
+          @setAttribute \fill, c
       direction: if @cfg.{}legend.position == \bottom => \horizontal else \vertical
       cfg: selectable: true
     @pie-legend.on \select, ~> @bind!; @resize!; @render!
 
-    @arc = d3.arc!
+    @arc = shape.arc!
       .startAngle 0
       .endAngle(Math.PI / 2)
     @_color = (d,i) ~>
@@ -182,7 +197,7 @@ mod = ({ctx, t}) ->
     @legend.data lgdata
 
     if @binding.color =>
-      @tint.extent(d3.extent(@data.filter(->!isNaN(it.color)).map(->+it.color)))
+      @tint.extent(extent(@data.filter(->!isNaN(it.color)).map(->+it.color)))
       @tint.mode chart.utils.tint.mode.continuous
     else
       @tint.mode chart.utils.tint.mode.ordinal
@@ -346,12 +361,12 @@ mod = ({ctx, t}) ->
     @rate = rate = 0.85 * # make it slightly smaller. adjust as your wish
       Math.PI / (2 * Math.sqrt(3)) * # wasted space from exterior hexagon to circle
       Math.sqrt(box.width * box.height / @parsed.map(-> Math.PI * (it.r ** 2)).reduce(((a,b) -> a + b),0))
-    rext = d3.extent @parsed.map (d,i) ~> d.rr = (d.r * @rate)
+    rext = extent @parsed.map (d,i) ~> d.rr = (d.r * @rate)
     minr = @cfg.bubble.min-radius or 0
     minr <?= Math.min(box.width, box.height) / 2
     maxr = Math.min((@cfg.bubble.max-radius or 0) * box.width * 0.25 / 100, rext.1) >? minr
     maxr <?= Math.min(box.width, box.height) / 2
-    radius-scale = d3.scaleLinear!domain([0,rext.1]).range [0, maxr]
+    radius-scale = Scale.linear!domain([0,rext.1]).range [0, maxr]
     @parsed.map (d,i) ~>
       d.rr = radius-scale d.rr
       if d.rr => d.rr >?= minr
@@ -360,11 +375,10 @@ mod = ({ctx, t}) ->
     {fmt, _color, cfg, binding, tint, layout, unit} = @
     box = @vbox
 
-    @g.unit.call ~>
-      node = layout.get-node \unit
-      ret = wrap-svg-text {node, useRange: true}
-      @g.unit.node!textContent = ''
-      @g.unit.node!appendChild ret
+    node = layout.get-node \unit
+    ret = wrap-svg-text {node, useRange: true}
+    @g.unit.textContent = ''
+    @g.unit.appendChild ret
 
     @parsed.map (d,i) ->
       d.paths.map (p,j) ->
@@ -383,136 +397,101 @@ mod = ({ctx, t}) ->
       @arc.startAngle s .endAngle e
       @arc!
 
-    @g.view.selectAll \g.bubble .data @parsed, (->it._id)
-      ..exit!each (d,i) ->
-        d._removing = true
-        d.paths.map -> it.old.r = it.cur.r; it.cur.r = 0
-      ..exit!
-        .transition!delay 150
-        .on \end, (d) -> if d._removing => d3.select(@).remove!
-      ..enter!append \g
-        .attr \class, 'bubble'
-        .attr \transform, (d,i) -> "translate(#{d._x},#{d._y})"
-        .each (d) -> d._removing = false
-    @g.view.selectAll \g.bubble
-      .attr \transform, (d,i) -> "translate(#{d._x},#{d._y})"
-      .each (_d,i) ->
-        n = d3.select(@)
-        n.selectAll \path.data .data(_d.paths, (d,i) -> i)
-          ..exit!remove!
-          ..enter!append \path
-            .attr \class, \data
-            .attr \opacity, (d,i) ~> 0
-            .attr \fill, (d,i) ~> _color _d, i
-        n.selectAll \path.data
-          .transition!duration 350
-          .attrTween \d, (d,i) -> interpolate-arc d.old, d.cur, i
-          .attr \fill, (d,i) ~> _color _d, i
-          .attr \opacity, 1
+    tween = (n, attrs, opt = {}) ~> @anim.tween n, attrs, {duration: 350} <<< opt
+    bj = join root: @g.view, tag: \g, cls: \bubble, data: @parsed, key: (->it._id)
+    # 移除的: 扇形半徑縮到 0, 縮完才把整個 bubble 拿掉
+    bj.exit.map (n) ->
+      d = n.__data__
+      d._removing = true
+      d.paths.map -> it.old.r = it.cur.r; it.cur.r = 0
+    bj.enter.map (n) ->
+      d = n.__data__
+      n.setAttribute \transform, "translate(#{d._x},#{d._y})"
+      d._removing = false
+    kids(@g.view, \g.bubble).map (n) ->
+      _d = n.__data__
+      n.setAttribute \transform, "translate(#{_d._x},#{_d._y})"
+      pj = join root: n, tag: \path, cls: \data, data: _d.paths, key: (d,i) -> i
+      pj.exit.map -> it.remove!
+      pj.enter.map (p, i) ->
+        p.setAttribute \opacity, 0
+        p.setAttribute \fill, _color _d, pj.nodes.indexOf(p)
+      remove = -> if n.__data__._removing and n.parentNode => n.remove!
+      if !pj.nodes.length and _d._removing => remove!
+      pj.nodes.map (p, i) ->
+        d = p.__data__
+        opt = if _d._removing and i == pj.nodes.length - 1 => {end: remove} else {}
+        tween p, {d: interpolate-arc(d.old, d.cur, i), fill: _color(_d, i), opacity: 1}, opt
     trimmed-parsed = if !@cfg?label?trim?enabled => @parsed
     else
       @parsed
         .sort (a,b) -> if +a.total < +b.total => 1 else if +a.total > +b.total => -1 else 0
         .slice 0, (@cfg?label?trim?keep or 0)
-    @g.view.selectAll \g.label .data trimmed-parsed, (._id)
-      ..exit!remove!
-      ..enter!append \g
-        .attr \class, 'label data'
-        .attr \transform, (d,i) -> "translate(#{d.x},#{d.y})"
-        .attr \opacity, 0
-        .attr \font-size, (cfg.label.font.size or '1em')
-        .style \pointer-events, \none
-        .style \cursor, \pointer
-        .each (d,i) ->
-          /* use group + wrap-svg-text below */
-          [0,1]
-            .map ~> d3.select(@).append \g .attr \class, \inner
-            .map ->
-              it
-                .attr \opacity, 0
-                .style \pointer-event, \none
+    lj = join root: @g.view, tag: \g, cls: \label, data: trimmed-parsed, key: (._id)
+    lj.exit.map ~>
+      @anim.interrupt it
+      it.remove!
+    lj.enter.map (n) ->
+      d = n.__data__
+      n.setAttribute \class, 'label data'
+      n.setAttribute \transform, "translate(#{d.x},#{d.y})"
+      n.setAttribute \opacity, 0
+      n.setAttribute \font-size, (cfg.label.font.size or '1em')
+      n.style <<< pointer-events: \none, cursor: \pointer
+      # use group + wrap-svg-text below
+      [0,1].map ->
+        n.appendChild document.createElementNS(svgns, \g)
+          ..setAttribute \class, \inner
+          ..setAttribute \opacity, 0
+    kids(@g.view, \g.label).map (n) ->
+      d = n.__data__
+      n.setAttribute \font-size, (cfg.label.font.size or '1em')
+      n.setAttribute \transform, "translate(#{d._x},#{d._y})"
+      n.setAttribute \class, "label #{if cfg.label.font.family => (that.className or '') else ''}"
+      t = (e,i) ->
+        if i != 0 => return d.name or ''
+        sum = d.area.reduce(((a,b) -> a + b),0)
+        if !(ret = fmt sum) => ''
+        else "#{ret}#{unit.inner}"
+      fs = (e, i, r = 1) ->
+        # adaptive font size
+        text = t(e,i)
+        s = if !i => 1.1
+        else 0.9 * ((1 - 0.1 * (text.length / 5)) >? 0.7)
+        return s * r
+      inners = kids(n, \.inner)
+      # use g + wrap-svg-text
+      inners.map (g, i) ->
+        g.__data__ = d
+        for j from g.childNodes.length - 1 to 0 by -1 => g.removeChild g.childNodes[j]
+        ret = wrap-svg-text {
+          text: t(d,i)
+          style: {
+            width: "#{if cfg.label.wrap => d.rr * 2 else box.width}px"
+            lineHeight: fs(d, i, 1.2)
+            fontSize: cfg.label.font.size or ''
+          }
+        }
+        ret.style.transform = if cfg.label.enabled != \both => "translate(0,0)"
+        else "translate(0,#{i * (0.3 + 1.1 / fs(d,i,1))}em)"
+        Array.from(ret.querySelectorAll("text")).map ->
+          it.setAttribute \text-anchor, \middle
+        g.appendChild ret
+      get-opacity = (e, i) ->
+        c = cfg.label.enabled
+        if c == \both => return 1
+        if c == \name => return (if i == 0 => 0 else 1)
+        if c == \value => return (if i == 1 => 0 else 1)
+        if c == \none => return 0
+        return 1
+      inners.map (g, i) ->
+        g.setAttribute \font-size, "#{fs(d,i,1)}em"
+        tween g, do
+          "style:visibility": if get-opacity(d,i) => \visible else \hidden
+          opacity: get-opacity(d,i)
+          fill: if ldcolor.hcl(_color d, 0).l < 70 => \#fff else \#000
 
-          # use plain text
-          /*
-          [0,1]
-            .map ~> d3.select(@).append \text .attr \class, \inner
-            .map ->
-              it
-                .attr \dy, \0
-                .attr \opacity, 0
-                .attr \text-anchor, \middle
-                .style \pointer-event, \none
-          */
-    @g.view.selectAll \g.label
-      .attr \font-size, (cfg.label.font.size or '1em')
-      .attr \transform, (d,i) -> "translate(#{d._x},#{d._y})"
-      .attr \class, "label #{if cfg.label.font.family => (that.className or '') else ''}"
-      .each (d,i) ->
-        t = (e,i) ->
-          if i != 0 => return d.name or ''
-          sum = d.area.reduce(((a,b) -> a + b),0)
-          if !(ret = fmt sum) => ''
-          else "#{ret}#{unit.inner}"
-        fs = (e, i, r = 1) ->
-          # adaptive font size
-          text = t(e,i)
-          s = if !i => 1.1
-          else 0.9 * ((1 - 0.1 * (text.length / 5)) >? 0.7)
-          return s * r
-          # fixed font size
-          # return if i => '0.9em' else '1.1em'
-
-        # use plain text
-        /*
-        d3.select(@).selectAll \text.inner
-          .text t
-          .attr \dy, (e,i) ->
-            if cfg.label.enabled != \both or !binding.name => return '.28em'
-            if i == 0 => '-.28em' else '.88em'
-        */
-        # use g + wrap-svg-text
-        d3.select(@).selectAll \g.inner
-          .each (e,i) ->
-            for j from @childNodes.length - 1 to 0 by -1 => @removeChild @childNodes[j]
-            ret = wrap-svg-text {
-              text: t(d,i)
-              style: {
-                width: "#{if cfg.label.wrap => d.rr * 2 else box.width}px"
-                lineHeight: fs(d, i, 1.2)
-                fontSize: cfg.label.font.size or ''
-              }
-            }
-            ret.style.transform = if cfg.label.enabled != \both => "translate(0,0)"
-            else "translate(0,#{i * (0.3 + 1.1 / fs(d,i,1))}em)"
-            Array.from(ret.querySelectorAll("text")).map ->
-              it.setAttribute \text-anchor, \middle
-            @appendChild ret
-            ## if somehow we found text overwrapped, we can try following code to prevent it.
-            # b = @getBoundingClientRect!
-            # s = d.rr * 2 * ((cfg.label.overflow or 0) + 1)
-            # e._show = b.height <= s
-            # if !e._show => d3.select(@).attr \opacity, 0
-            ## the `e._show` in `\opacity` below should also be enabled if we want to enable this.
-        get-opacity = (e, i) ->
-          #if !e._show => return 0
-          c = cfg.label.enabled
-          if c == \both => return 1
-          if c == \name => return (if i == 0 => 0 else 1)
-          if c == \value => return (if i == 1 => 0 else 1)
-          if c == \none => return 0
-          return 1
-        d3.select(@).selectAll \.inner
-          .attr \font-size, (e,i) -> "#{fs(e,i,1)}em"
-          .transition!duration 350
-          .style \visibility, (e,i) -> if get-opacity(e,i) => \visible else \hidden
-          .attr \opacity, get-opacity
-          .attr \fill, ->
-            hcl = ldcolor.hcl(_color d, 0)
-            if hcl.l < 70 => \#fff else \#000
-
-    @g.view.selectAll \g.label
-      .transition!duration 150
-      .attr \font-size, cfg.label.font.size
+    kids(@g.view, \g.label).map (n) -> tween n, {"font-size": cfg.label.font.size}, {duration: 150}
     # even with delay, opacity is calculated before font-size is fully updated,
     # thus box size with pre-font-size is returned.
     # we use setTimeout to enfoce opacity to be calculated after font-size is updated.
@@ -525,15 +504,13 @@ mod = ({ctx, t}) ->
         # tolerance for label overflowing out of circle
         s = 2 * d.rr * ((cfg.label.overflow or 0) + 1)
         if s < w or 2 * d.rr < h => 0 else 1
-      @g.view.selectAll \g.label
-        .each (d,i) ->
-          d._box = box = @getBoundingClientRect!
-          [w,h] = [box.width, box.height]
-          d3.select(@).selectAll \.inner
-            .attr \transform -> "translate(0,#{-h/2})"
-        .transition!duration 150
-        .attr \opacity, get-opacity
-        .style \visibility, (d,i) -> if get-opacity(d,i) => \visible else \hidden
+      kids(@g.view, \g.label).map (n, i) ->
+        d = n.__data__
+        d._box = box = n.getBoundingClientRect!
+        [w,h] = [box.width, box.height]
+        kids(n, \.inner).map -> it.setAttribute \transform, "translate(0,#{-h/2})"
+        op = get-opacity(d,i)
+        tween n, {opacity: op, "style:visibility": (if op => \visible else \hidden)}, {duration: 150}
     ), 150
     @legend.render!
 
@@ -577,8 +554,6 @@ mod = ({ctx, t}) ->
       it._x = it._x + (it.x - it._x) * 0.1
       it._y = it._y + (it.y - it._y) * 0.1
 
-    @g.view.selectAll \g.bubble
-      .attr \transform, (d,i) -> "translate(#{d._x},#{d._y})"
-
-    @g.view.selectAll \g.label
-      .attr \transform, (d,i) -> "translate(#{d._x},#{d._y})"
+    (kids(@g.view, \g.bubble) ++ kids(@g.view, \g.label)).map (n) ->
+      d = n.__data__
+      n.setAttribute \transform, "translate(#{d._x},#{d._y})"
