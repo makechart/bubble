@@ -1,5 +1,14 @@
 # Change Logs
 
+## v0.0.6
+
+ - extend the lite base ( `@makechart/base` `lite/index.html`, no d3 ): needs `@makechart/base` >= 0.2.0
+   and `@plotdb/chart` >= 3.7.0
+   d3 is replaced by `d3-hierarchy`, `d3-force` ( with `d3-dispatch`, `d3-quadtree`, `d3-timer` ) and `d3-force-boundary`
+   transitions run on `chart.anim`, so animation can be recorded frame by frame ( `anim.manual` / `step` )
+ - add test cases ( `test/index.ls`, run with `npm test` via `@makechart/viewer` )
+
+
 ## v0.0.5
 
  - add d3-force-boundary dependency
