@@ -48,11 +48,12 @@ mod = ({ctx, t}) ->
     tip: \tip
   }) <<<
     bubble:
-      min-radius: name: "min radius", type: \number, default: 1, min: 0, max: 10, step: 1
-      max-radius: name: "max radius", type: \number, default: 100, min: 0.1, max: 100, step: 0.1
+      min-radius: name: "min radius", type: \number, default: 1, min: 0, max: 10, step: 1, desc: {en: "smallest radius a bubble can shrink to, in px", "zh-TW": "泡泡最小的半徑 ( px )"}
+      max-radius: name: "max radius", type: \number, default: 100, min: 0.1, max: 100, step: 0.1, desc: {en: "cap on the largest bubble's radius, relative to the chart width ( 100 = a quarter of the width ); bubbles never grow past the size that fills the chart", "zh-TW": "最大泡泡半徑的上限，以圖表寬度為基準 ( 100 = 寬度的四分之一 )；泡泡不會大於剛好填滿圖表的大小"}
     dynamics:
       anchor:
         name: "Anchor Layout", type: \choice, default: \none
+        desc: {en: "pull bubbles of the same group together: default around where the group was packed, circular with groups on a ring, array with groups in a grid, none to not pull", "zh-TW": "把同一組的泡泡往一起拉：default 拉向該組原本排列的位置，circular 各組排成一圈，array 各組排成格狀，none 不拉"}
         values: [
         * name: "Default", value: \default
         * name: "Circular", value: \circular
@@ -60,33 +61,35 @@ mod = ({ctx, t}) ->
         * name: "none", value: \none
         ]
     pie:
-      order: type: \choice, values: <[group ratio]>, default: \ratio
+      order: type: \choice, values: <[group ratio]>, default: \ratio, desc: {en: "with two or more area fields, bubbles shift sideways by the ratio of the first two values: group keeps the shift within each group, ratio spreads it over the whole width", "zh-TW": "綁了兩個以上的 area 欄位時，泡泡依前兩個值的比例左右錯開：group 只在各組範圍內錯開，ratio 攤開到整個寬度"}
       color:
         type: \choice, name: "colorscheme",
+        desc: {en: "wedge colors when bubbles are grouped: from palette gives each area field a palette color; the others shade the group color, lightness away from its own lightness, dark to light and light to dark in that order", "zh-TW": "有分組時扇形的配色：from palette 每個 area 欄位用調色盤的一色；其他都以組別顏色調明暗，lightness 從原色往亮或暗變化，dark to light 與 light to dark 依序由暗到亮或由亮到暗"}
         values: ["from palette", "lightness", "dark to light", "light to dark"]
         default: "dark to light"
       contrast:
         type: \number, name: "lightness contrast"
+        desc: {en: "how far the lightness of wedges in one bubble spreads apart ( 0.1 to 0.9 )", "zh-TW": "同一個泡泡裡各扇形的明暗差距 ( 0.1 到 0.9 )"}
         default: 0.5, min: 0.1, max: 0.9, step: 0.01
       legend: chart.utils.config.from({preset: \legend})
     label:
-      enabled: type: \choice, default: \both, values: <[both name value none]>
-      format: type: \format, default: \.3s
+      enabled: type: \choice, default: \both, values: <[both name value none]>, desc: {en: "which text to show inside the bubbles: name, value, both, or none", "zh-TW": "泡泡裡顯示哪些文字：名稱、數值、兩者或都不顯示"}
+      format: type: \format, default: \.3s, desc: {en: "number format of the values in bubbles, also used by the tooltip when it has no format of its own", "zh-TW": "泡泡裡數值的格式；提示框沒有設定格式時也用這個"}
       overflow:
         type: \number
-        desc: "percentage of tolerance when label overflow"
+        desc: {en: "how much wider than its bubble a label may be before it is hidden ( 0 to 1, 0.2 = 20% )", "zh-TW": "標籤可以比泡泡寬多少才會被隱藏 ( 0 到 1，0.2 = 20% )"}
         default: 0, min: 0, max: 1, step: 0.01
       font: chart.utils.config.from({preset: \font})
-      wrap: type: \boolean, default: true
+      wrap: type: \boolean, default: true, desc: {en: "wrap label text to the width of its bubble", "zh-TW": "標籤文字依泡泡寬度換行"}
       trim:
         enabled:
           type: \boolean, default: false
-          desc: "limit maximal amount of labels to show"
+          desc: {en: "show labels only on the largest bubbles", "zh-TW": "只在最大的幾個泡泡上顯示標籤"}
         keep:
           type: \number
-          desc: "amount of labels to keep when trim"
+          desc: {en: "how many of the largest bubbles keep their labels", "zh-TW": "保留標籤的泡泡數量 ( 由大到小 )"}
           default: 100, min: 0, max: 100, step: 1
-    unit: position: type: \choice, values: <[inner outside none]>
+    unit: position: type: \choice, values: <[inner outside none]>, desc: {en: "where the unit of the area field goes: inner after each value in the bubbles, outside as a separate note on the chart, none hidden", "zh-TW": "area 欄位單位的位置：inner 接在泡泡裡的數值後面，outside 另外寫在圖上，none 不顯示"}
   dimension:
     group: {type: \C, name: "group", priority: 2}
     color: {type: \NR, name: "color", priority: 4}
