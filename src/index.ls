@@ -10,7 +10,7 @@ module.exports =
     * name: \d3-quadtree, version: "3.0.1", path: "dist/d3-quadtree.min.js", async: false
     * name: \d3-timer, version: "3.0.1", path: "dist/d3-timer.min.js", async: false
     * name: \d3-force, version: "3.0.0", path: "dist/d3-force.min.js", async: false
-    * name: \d3-force-boundary, path: "dist/d3-force-boundary.min.js"
+    * name: \d3-force-boundary, version: "0.0.3", path: "dist/d3-force-boundary.min.js"
     ]
     i18n:
       "zh-TW":
