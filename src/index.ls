@@ -90,6 +90,15 @@ mod = ({ctx, t}) ->
           desc: {en: "how many of the largest bubbles keep their labels", "zh-TW": "保留標籤的泡泡數量 ( 由大到小 )"}
           default: 100, min: 0, max: 100, step: 1
     unit: position: type: \choice, values: <[inner outside none]>, desc: {en: "where the unit of the area field goes: inner after each value in the bubbles, outside as a separate note on the chart, none hidden", "zh-TW": "area 欄位單位的位置：inner 接在泡泡裡的數值後面，outside 另外寫在圖上，none 不顯示"}
+  # 段落 ( tab ) 的說明, key 是段落的路徑. preset 的段落由 chart.utils.config.tabinfo 掛上來, 共用的 common 與各處的 font 段落由核心補
+  tabinfo: chart.utils.config.tabinfo({legend: \legend, tip: \tip, "pie/legend": \legend}) <<<
+    bubble: desc: {en: "the smallest and largest size of the bubbles", "zh-TW": "泡泡大小的下限與上限"}
+    dynamics: desc: {en: "how the bubbles move and gather by group", "zh-TW": "泡泡怎麼移動、依分組聚集"}
+    pie: desc: {en: "how bubbles are split into wedges when two or more area fields are bound", "zh-TW": "綁了兩個以上的 area 欄位時，泡泡切成扇形的方式"}
+    "pie/legend": desc: {en: "the list of area fields, one per wedge color; click items to show or hide them", "zh-TW": "各 area 欄位 ( 扇形顏色 ) 的清單；點項目可以顯示或隱藏"}
+    label: desc: {en: "the names and values written inside the bubbles", "zh-TW": "寫在泡泡裡的名稱與數值"}
+    "label/trim": desc: {en: "show labels only on the largest bubbles, to reduce clutter", "zh-TW": "只在最大的幾個泡泡上顯示標籤，減少雜亂"}
+    unit: desc: {en: "where the unit of the area field is shown", "zh-TW": "area 欄位單位的顯示位置"}
   dimension:
     group: {type: \C, name: "group", priority: 2}
     color: {type: \NR, name: "color", priority: 4}
